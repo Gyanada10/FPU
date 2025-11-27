@@ -48,7 +48,7 @@ module ALU (
     .b_operand(b_operand),
     .Add_or_Sub(add_sub_ctrl),
     .Exception(Add_Sub_Exception),
-    .result(Add_Sub_Output)
+    .Result(Add_Sub_Output)
   );
 
   Multiplication mul_inst (
@@ -60,7 +60,7 @@ module ALU (
     .Exception(Mul_Exception),
     .Overflow(Mul_Overflow),
     .Underflow(Mul_Underflow),
-    .Result(Mul_Output)
+    .result(Mul_Output)
   );
 
  Division div_inst (
