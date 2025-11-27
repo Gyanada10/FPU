@@ -63,47 +63,14 @@ module fp_div (
             exp_r = exp_a_int - exp_b_int + 1023;
 
             // Step 7: Mantissa division
-            
-            mant_res = (mant_a << 53) / mant_b;
-            mant_dividend = (mant_a << 53);
-            mant_divisor = mant_b;
-			mant_divion m1(.mant_dividend(x), .mant_divisor(y), .mant_res (q), .remainder (r));
-module mant_division(x,y,q,r);
-    input [51:0]x //Dividend
-,y; //Divisor
-    output reg [51:0]q,r;
-    reg [52:0]a;    
-    reg [52:0]m;   
-integer i;
 
-always @(*) begin
-    if (y!=52'd0) begin
-        m[51:0]=y;
-        m[52]=0;
-        a=53'd0;
-        q=x;
-    for(i=0;i<52;i=i+1) begin
-	//Shift Left
-	a=a<<1;
-        a[0]=q[51];
-	q=q<<1;
-	a=a-m;
-        if(a[52]==1) begin
-		q[0]=0;
-		a=a+m; //Restore
-	end
-	else
-	q[0]=1;
-end
-        r=a[51:0];
-end
-else
-begin
-	q=52'd0;
-	r=52'd0;
-end
-end
-endmodule
+			wire [105:0] recip_b;
+			Reciprocal_NR recip_inst (
+				.d(mant_b),
+				.recip_out(recip_b)
+			);
+
+			mant_res = mant_a * recip_b;
 
             // Step 8: Normalize the result
            
@@ -120,6 +87,26 @@ endmodule
 
 endmodule
 
+module Reciprocal_NR (
+    input  [52:0] d,          // divisor mantissa (normalized, 53 bits)
+    output [105:0] recip_out  // reciprocal approximation (scaled for mantissa multiply)
+);
+    // Initial approximation (for coursework, use a rough shift)
+    // In practice, you'd use a LUT for better accuracy
+    reg [105:0] x0;
+    reg [105:0] x1;
+
+    always @(*) begin
+        // crude initial guess: 1/d ≈ (2^53)/d
+        x0 = (1 << 53) / d;
+
+        // Newton–Raphson refinement: x1 = x0 * (2 - d*x0)
+        x1 = x0 * ((1 << 54) - d * x0) >> 53;
+
+    end
+
+    assign recip_out = x1;
+endmodule
 
 
 `timescale 1ns/1ps
