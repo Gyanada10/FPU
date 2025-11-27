@@ -33,14 +33,28 @@ wire Exception_wire = (&exp_a) | (&exp_b);
   wire [52:0] sig_a_shifted = (exp_a >= exp_b) ? sig_a : (sig_a >> exp_diff);
   wire [52:0] sig_b_shifted = (exp_b > exp_a) ? sig_b : (sig_b >> exp_diff);
 
-  // Perform addition or subtraction
-  wire [53:0] sig_add = sig_a_shifted + sig_b_shifted;
-  wire [53:0] sig_sub = (sig_a_shifted >= sig_b_shifted) ? (sig_a_shifted - sig_b_shifted) : (sig_b_shifted - sig_a_shifted);
+
+// Prepare B operand depending on add/sub
+wire [53:0] B_input  = (Add_or_Sub) ? ~sig_b_shifted : sig_b_shifted;
+wire        Cin_input = (Add_or_Sub) ? 1'b1 : 1'b0;
+
+wire [53:0] sig_sum;
+wire        sig_cout;
+  
+  // Perform addition or subtraction using CLA module
+CLA_Adder cla_inst (
+  .A(sig_a_shifted),
+  .B(B_input),
+  .Cin(Cin_input),
+  .Sum(sig_sum),
+  .Cout(sig_cout)
+);
+
 
   // Normalization and sign handling
-  wire carry = sig_add[53];
- wire [53:0] sig_final = (Add_or_Sub) ? sig_sub : (carry ? (sig_add >> 1) : sig_add);
-  wire [10:0] exp_final = (Add_or_Sub) ? exp_large : (carry ? (exp_large + 1) : exp_large);
+wire carry = sig_cout;
+wire [53:0] sig_final = (carry ? (sig_sum >> 1) : sig_sum);
+wire [10:0] exp_final = (carry ? (exp_large + 1) : exp_large);
   wire sign_final = (Add_or_Sub) ? ((sig_a_shifted >= sig_b_shifted) ? sign_a : sign_b) : sign_a;
   
 reg [53:0] sig_stage1;
@@ -84,3 +98,29 @@ end
 
 
 endmodule
+
+module CLA_Adder(
+  input  [53:0] A,
+  input  [53:0] B,
+  input         Cin,
+  output [53:0] Sum,
+  output        Cout
+);
+  wire [53:0] G = A & B;   // generate
+  wire [53:0] P = A ^ B;   // propagate
+  wire [54:0] C;
+  assign C[0] = Cin;
+
+  genvar i;
+  generate
+    for (i=0; i<54; i=i+1) begin
+      assign C[i+1] = G[i] | (P[i] & C[i]);
+      assign Sum[i] = P[i] ^ C[i];
+    end
+  endgenerate
+
+  assign Cout = C[54];
+endmodule
+
+
+  
