@@ -52,7 +52,13 @@ module Multiplication (
   // Stage 2 (multiply + finish)
   // ----------------------------
 
-  wire [105:0] product = s1_op_a * s1_op_b;
+wire [105:0] product;
+
+BoothMultiplier booth_inst (
+  .A(s1_op_a),
+  .B(s1_op_b),
+  .Product(product)
+);
 
   wire normalised = product[105];
   wire [105:0] norm_product =
@@ -90,3 +96,30 @@ module Multiplication (
   end
 
 endmodule
+
+
+
+module BoothMultiplier (
+  input  signed [52:0] A,   // 53-bit multiplicand (mantissa + hidden bit)
+  input  signed [52:0] B,   // 53-bit multiplier
+  output signed [105:0] Product // 106-bit product
+);
+
+  reg signed [106:0] acc;   // Accumulator (extra bit for Booth)
+  integer i;
+
+  always @(*) begin
+    acc = {53'd0, B, 1'b0}; // {upper zeros, multiplier, extra bit}
+    for (i = 0; i < 53; i = i + 1) begin
+      case ({acc[1], acc[0]})
+        2'b01: acc[106:54] = acc[106:54] + A;
+        2'b10: acc[106:54] = acc[106:54] - A;
+        default: ; // Do nothing
+      endcase
+      acc = acc >>> 1; // Arithmetic right shift
+    end
+  end
+
+  assign Product = acc[106:1]; // Final product
+endmodule
+
