@@ -1,7 +1,6 @@
 `include "Addition_Subtraction.v"
 `include "Multiplication.v"
 `include "Division.v"
-`include "Floating_Point_to_Integer.v"
 
 module ALU (
   input  wire  clk,       
@@ -49,7 +48,7 @@ module ALU (
     .b_operand(b_operand),
     .Add_or_Sub(add_sub_ctrl),
     .Exception(Add_Sub_Exception),
-    .Result(Add_Sub_Output)
+    .result(Add_Sub_Output)
   );
 
   Multiplication mul_inst (
@@ -77,11 +76,6 @@ module ALU (
     .count()
 );
 
-
-  Floating_Point_to_Integer FPI (
-    .float_in(a_operand),   
-    .int_out(Int_output)      
-  );
 
   // 5. Combinational logic for operation selection
   reg [63:0] alu_out;
